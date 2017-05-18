@@ -70,10 +70,12 @@
 (defn- add-deps-to-project
   [project source-dependencies]
   (if (seq source-dependencies)
-    (update project
-            :dependencies
-            (fnil into [])
-            source-dependencies)
+    (-> project
+        (update :dependencies
+                (fnil into [])
+                source-dependencies)
+        (update :dependencies
+                reverse))
     (do (lcm/info "No source dependencies to add!")
         project)))
 
