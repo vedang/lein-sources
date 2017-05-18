@@ -70,8 +70,10 @@
 (defn- add-deps-to-project
   [project source-dependencies]
   (if (seq source-dependencies)
-    (let [lein-sources-profile {:dependencies source-dependencies}]
-      (p/merge-profiles project [lein-sources-profile]))
+    (update project
+            :dependencies
+            (fnil into [])
+            source-dependencies)
     (do (lcm/info "No source dependencies to add!")
         project)))
 
