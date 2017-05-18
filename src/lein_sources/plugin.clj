@@ -62,8 +62,8 @@
                   j (when (:resolve-javadoc-artifacts? opts)
                       (resolve-javadoc-artifact d reps))]
               (cond-> sources-deps
-                s (conj s)
-                j (conj j))))
+                s (conj (into s [:scope "test"]))
+                j (conj (into j [:scope "test"])))))
           []
           deps))
 
