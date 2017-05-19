@@ -4,12 +4,15 @@
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.pprint :refer [pprint]]
-            [leiningen.core.main :as lcm])
+            [leiningen.core.main :as lcm]
+            [leiningen.core.user :as lcu])
   (:import java.io.FileNotFoundException
            org.sonatype.aether.resolution.DependencyResolutionException))
 
 (def missing-lein-sources-file
-  "/Users/vedang/.lein/lein-sources.missing.edn")
+  (str (lcu/leiningen-home) "/lein-sources-missing.edn"))
+(def final-lein-sources-project-file
+  (str (lcu/leiningen-home) "/lein-sources-final.edn"))
 
 (def known-failed-deps
   (atom
@@ -90,6 +93,6 @@
     (lcm/info "Adding the following dependencies to :lein-sources profile:\n"
               (with-out-str (pprint source-dependencies)))
     (let [new-project (add-deps-to-project project source-dependencies)]
-      (spit "/Users/vedang/.lein/lein-sources-final.edn"
+      (spit final-lein-sources-project-file
             (with-out-str (pprint new-project)))
       new-project)))
