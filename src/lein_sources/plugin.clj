@@ -10,11 +10,19 @@
            org.sonatype.aether.resolution.DependencyResolutionException))
 
 (def missing-lein-sources-file
+  "A file to track jars which we know don't have accompanying sources
+  or javadoc jars."
   (str (lcu/leiningen-home) "/lein-sources-missing.edn"))
 (def final-lein-sources-project-file
+  "A file to store the final project map after lein-sources has
+  manipulated the dependencies vector. This is useful when debugging."
   (str (lcu/leiningen-home) "/lein-sources-final.edn"))
 
 (def known-failed-deps
+  "Track jars which we know don't have source or javadoc jars in-mem.
+  We read this information from a file - `missing-lein-sources-file` -
+  which persists across multiple invocations of lein-sources. The file
+  is updated by `find-transitive-dependencies`."
   (atom
    (reduce (fn [acc l]
              (conj acc (edn/read-string l)))
@@ -51,6 +59,9 @@
                              e))))))
 
 (defn- resolve-artifact
+  "Given a dependency and a classifier for the dep - either
+  \"sources\" or \"javadoc\" - try and resolve the artifact. Returns
+  the dependency on success, and nil on failure."
   [dependency repositories classifier]
   (let [dep (concat dependency [:classifier classifier])]
     (->> (find-transitive-dependencies [dep]
@@ -80,6 +91,8 @@
           deps))
 
 (defn- add-deps-to-project
+  "Given the calculated `source-dependencies` and the original
+  `project`, update the dependencies in the project."
   [project source-dependencies]
   (if (seq source-dependencies)
     (-> project
@@ -92,6 +105,8 @@
         project)))
 
 (defn middleware
+  "Given the dependencies of the project, add source jars wherever
+  such jars are available."
   [{:keys [repositories dependencies lein-sources-opts] :as project}]
   (lcm/info "Inside lein-sources!")
   (let [reps (into aether/maven-central repositories)
@@ -106,6 +121,7 @@
     (lcm/info "Adding the following dependencies to :lein-sources profile:\n"
               (with-out-str (pprint source-dependencies)))
     (let [new-project (add-deps-to-project project source-dependencies)]
-      (spit final-lein-sources-project-file
-            (with-out-str (pprint new-project)))
+      (when (:debug? lein-sources-opts)
+        (spit final-lein-sources-project-file
+              (with-out-str (pprint new-project))))
       new-project)))
