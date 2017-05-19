@@ -24,7 +24,15 @@
                   [])))))
 
 (defn- find-transitive-dependencies
-  [dependencies repositories]
+  "Given the dependencies of the project, use aether to get a list of
+  all the transitive deps.
+
+  I use this function to try and fetch source and javadoc jars. It
+  tracks DependencyResolutionExceptions in `missing-lein-sources-file`
+  so as to avoid fetching jars that we know don't exist."
+  [dependencies repositories &
+   {:keys [track-failed-deps?]
+    :or {track-failed-deps? true}}]
   (if (@known-failed-deps dependencies)
     (lcm/info (format "Known Dependency Resolution Failure: %s"
                       dependencies))
@@ -33,10 +41,11 @@
              keys
              set)
          (catch DependencyResolutionException e
-           (spit missing-lein-sources-file
-                 (str dependencies "\n")
-                 :append true)
-           (swap! known-failed-deps conj dependencies)
+           (when track-failed-deps?
+             (spit missing-lein-sources-file
+                   (str dependencies "\n")
+                   :append true)
+             (swap! known-failed-deps conj dependencies))
            (lcm/info (format "Dependency Resolution Exception when finding transitive deps: %s \nTrace: %s"
                              dependencies
                              e))))))
@@ -86,7 +95,11 @@
   [{:keys [repositories dependencies lein-sources-opts] :as project}]
   (lcm/info "Inside lein-sources!")
   (let [reps (into aether/maven-central repositories)
-        transitive-dependencies (find-transitive-dependencies dependencies reps)
+        ;; When finding the initial transitive-deps, there is no need
+        ;; for me to track any DependencyResolutionException.
+        transitive-dependencies (find-transitive-dependencies dependencies
+                                                              reps
+                                                              :track-failed-deps? false)
         source-dependencies (resolve-source-dependencies transitive-dependencies
                                                          reps
                                                          lein-sources-opts)]
