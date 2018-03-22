@@ -7,7 +7,7 @@
             [leiningen.core.main :as lcm]
             [leiningen.core.user :as lcu])
   (:import java.io.FileNotFoundException
-           org.sonatype.aether.resolution.DependencyResolutionException))
+           org.eclipse.aether.resolution.DependencyResolutionException))
 
 (def missing-lein-sources-file
   "A file to track jars which we know don't have accompanying sources

@@ -4,6 +4,6 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :eval-in-leiningen true
-  :dependencies [[com.cemerick/pomegranate "0.3.1"]]
-  :profiles {:dev {:dependencies [[org.clojure/clojure "1.8.0"]
-                                  [leiningen-core "2.7.1"]]}})
+  :dependencies [[com.cemerick/pomegranate "1.0.0"]]
+  :profiles {:dev {:dependencies [[org.clojure/clojure "1.9.0"]
+                                  [leiningen-core "2.8.1"]]}})
