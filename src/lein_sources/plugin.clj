@@ -42,7 +42,7 @@
    {:keys [track-failed-deps?]
     :or {track-failed-deps? true}}]
   (if (@known-failed-deps dependencies)
-    (lcm/info (format "Known Dependency Resolution Failure: %s"
+    (lcm/info (format "lein-sources: Known Dependency Resolution Failure: %s"
                       dependencies))
     (try (-> (aether/resolve-dependencies :coordinates dependencies
                                           :repositories repositories)
@@ -54,7 +54,7 @@
                    (str dependencies "\n")
                    :append true)
              (swap! known-failed-deps conj dependencies))
-           (lcm/info (format "Dependency Resolution Exception when finding transitive deps: %s \nTrace: %s"
+           (lcm/info (format "lein-sources: Dependency Resolution Exception when finding transitive deps: %s \nTrace: %s"
                              dependencies
                              e))))))
 
@@ -108,20 +108,27 @@
   "Given the dependencies of the project, add source jars wherever
   such jars are available."
   [{:keys [repositories dependencies lein-sources-opts] :as project}]
-  (lcm/info "Inside lein-sources!")
-  (let [reps (into aether/maven-central repositories)
-        ;; When finding the initial transitive-deps, there is no need
-        ;; for me to track any DependencyResolutionException.
-        transitive-dependencies (find-transitive-dependencies dependencies
+  (lcm/info "lein-sources: Begin Magic!")
+  (try (let [reps (into aether/maven-central repositories)
+             ;; When finding the initial transitive-deps, there is no need
+             ;; for me to track any DependencyResolutionException.
+             _ (lcm/debug "lein-sources: Found reps!")
+             transitive-dependencies (find-transitive-dependencies dependencies
+                                                                   reps
+                                                                   :track-failed-deps? false)
+             _ (lcm/debug "lein-sources: Found transitive-deps!")
+             source-dependencies (resolve-source-dependencies transitive-dependencies
                                                               reps
-                                                              :track-failed-deps? false)
-        source-dependencies (resolve-source-dependencies transitive-dependencies
-                                                         reps
-                                                         lein-sources-opts)]
-    (lcm/info "Adding the following dependencies to :lein-sources profile:\n"
-              (with-out-str (pprint source-dependencies)))
-    (let [new-project (add-deps-to-project project source-dependencies)]
-      (when (:debug? lein-sources-opts)
-        (spit final-lein-sources-project-file
-              (with-out-str (pprint new-project))))
-      new-project)))
+                                                              lein-sources-opts)
+             _ (lcm/debug "lein-sources: Found source-deps!")]
+         (lcm/info "lein-sources: Adding the following dependencies to profile:\n"
+                   (with-out-str (pprint source-dependencies)))
+         (let [new-project (add-deps-to-project project source-dependencies)]
+           (when (:debug? lein-sources-opts)
+             (spit final-lein-sources-project-file
+                   (with-out-str (pprint new-project))))
+           new-project))
+       (catch Exception e
+         (lcm/info "lein-sources: Caught Exception! :\n"
+                   (with-out-str (pprint e)))
+         project)))
