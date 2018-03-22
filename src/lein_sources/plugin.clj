@@ -44,8 +44,14 @@
   (if (@known-failed-deps dependencies)
     (lcm/info (format "lein-sources: Known Dependency Resolution Failure: %s"
                       dependencies))
-    (try (-> (aether/resolve-dependencies :coordinates dependencies
-                                          :repositories repositories)
+    (try (-> (aether/resolve-dependencies
+              :coordinates dependencies
+              :repositories (map (fn [[id settings]]
+                                   (let [settings-map (if (string? settings)
+                                                        {:url settings}
+                                                        settings)]
+                                     [id (lcu/resolve-credentials settings-map)]))
+                                 repositories))
              keys
              set)
          (catch DependencyResolutionException e
